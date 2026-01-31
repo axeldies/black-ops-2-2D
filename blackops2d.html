@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Black Ops 2D - Multijugador Global</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #ff6b00;
+            --secondary: #00d4ff;
+            --dark: #0a0e14;
+            --darker: #050709;
+            --accent: #ffd700;
+            --danger: #ff1744;
+            --success: #00ff88;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, #1a1f2e 100%);
+            color: #fff;
+            overflow: hidden;
+            touch-action: manipulation;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .background-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,107,0,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,107,0,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 212, 255, 0.02) 50%
+            );
+            background-size: 100% 4px;
+            animation: scanlines 8s linear infinite;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        #mainMenu, #gameContainer, #lobby, #profileCustomizer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 1;
+        }
+
+        #mainMenu.active, #gameContainer.active, #lobby.active, #profileCustomizer.active {
+            display: flex;
+        }
+
+        /* MAIN MENU */
+        #mainMenu {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 50% 50%, rgba(255,107,0,0.1) 0%, transparent 70%);
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(255,107,0,0.5);
+            margin-bottom: 1rem;
+            animation: glitch 3s infinite;
+            letter-spacing: 0.1em;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        .subtitle {
+            font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+            color: var(--secondary);
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            font-weight: 300;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: min(400px, 90%);
+        }
+
+        .btn {
+            padding: 1.2rem 2.5rem;
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            border: 2px solid var(--primary);
+            background: linear-gradient(135deg, rgba(255,107,0,0.2) 0%, rgba(0,212,255,0.2) 100%);
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            letter-spacing: 0.1em;
+            touch-action: manipulation;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before,
+        .btn:active::before {
+            left: 100%;
+        }
+
+        .btn:hover,
+        .btn:active {
+            border-color: var(--secondary);
+            box-shadow: 0 0 20px rgba(0,212,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, #ff8800 100%);
+            box-shadow: 0 5px 20px rgba(255,107,0,0.4);
+        }
+
+        .btn-primary:hover,
+        .btn-primary:active {
+            box-shadow: 0 5px 30px rgba(255,107,0,0.6);
+        }
+
+        /* LOBBY */
+        #lobby {
+            flex-direction: column;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .lobby-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .lobby-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .player-card {
+            background: linear-gradient(135deg, rgba(255,107,0,0.1) 0%, rgba(0,212,255,0.1) 100%);
+            border: 2px solid var(--primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid var(--secondary);
+            object-fit: cover;
+            background: var(--dark);
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .player-country {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 0.2rem;
+        }
+
+        .player-stats {
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-top: 0.3rem;
+        }
+
+        .lobby-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* PROFILE CUSTOMIZER */
+        #profileCustomizer {
+            flex-direction: column;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .customizer-content {
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .profile-preview {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: rgba(255,107,0,0.1);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+        }
+
+        .preview-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--secondary);
+            margin: 0 auto 1rem;
+            object-fit: cover;
+            background: var(--dark);
+        }
+
+        .avatar-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .avatar-option {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            object-fit: cover;
+            background: var(--dark);
+        }
+
+        .avatar-option:hover,
+        .avatar-option.selected {
+            border-color: var(--primary);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255,107,0,0.1);
+            border: 2px solid var(--primary);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            border-radius: 4px;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 10px rgba(0,212,255,0.3);
+        }
+
+        /* GAME CONTAINER */
+        #gameContainer {
+            flex-direction: column;
+        }
+
+        .game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-left, .hud-right {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: auto;
+        }
+
+        .hud-item {
+            background: rgba(10,14,20,0.8);
+            border: 2px solid var(--primary);
+            padding: 0.5rem 1rem;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border-radius: 4px;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 30px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid var(--success);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--accent) 100%);
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .health-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: healthShine 2s linear infinite;
+        }
+
+        @keyframes healthShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .score {
+            color: var(--accent);
+        }
+
+        .kills {
+            color: var(--danger);
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,107,0,0.3);
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #fff;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .control-btn:active {
+            background: rgba(255,107,0,0.6);
+            transform: scale(0.95);
+        }
+
+        .mobile-joystick {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,107,0,0.2);
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            display: none;
+            z-index: 10;
+        }
+
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .fire-button {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            width: 80px;
+            height: 80px;
+            background: rgba(255,23,68,0.3);
+            border: 3px solid var(--danger);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--danger);
+            z-index: 10;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .fire-button:active {
+            background: rgba(255,23,68,0.6);
+            transform: scale(0.95);
+        }
+
+        .kill-feed {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            max-width: 300px;
+            z-index: 10;
+        }
+
+        .kill-message {
+            background: rgba(10,14,20,0.9);
+            border-left: 3px solid var(--danger);
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            animation: killFade 5s ease forwards;
+        }
+
+        @keyframes killFade {
+            0% { opacity: 1; transform: translateX(0); }
+            80% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(20px); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10,14,20,0.95);
+            border: 3px solid var(--primary);
+            padding: 2rem 3rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            z-index: 1000;
+            animation: notificationPop 0.5s ease;
+            display: none;
+        }
+
+        @keyframes notificationPop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        @keyframes unlockPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .leaderboard {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10,14,20,0.95);
+            border: 3px solid var(--primary);
+            padding: 2rem;
+            min-width: 400px;
+            max-width: 90%;
+            display: none;
+            z-index: 100;
+        }
+
+        .leaderboard h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255,107,0,0.1);
+            border-left: 3px solid var(--secondary);
+        }
+
+        .leaderboard-item:first-child {
+            border-left-color: var(--accent);
+            background: rgba(255,215,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-joystick,
+            .fire-button {
+                display: flex;
+            }
+            
+            .controls {
+                display: none;
+            }
+            
+            .hud-item {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
+            }
+            
+            .health-bar {
+                width: 150px;
+                height: 20px;
+            }
+
+            .weapon-selector {
+                grid-template-columns: repeat(4, 1fr);
+                bottom: 10px;
+                right: 1rem;
+                max-width: 200px;
+            }
+
+            .weapon-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .weapon-info-panel {
+                bottom: auto;
+                top: 100px;
+                right: 1rem;
+                min-width: 200px;
+            }
+        }
+
+        .unlock-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, rgba(255,107,0,0.95) 0%, rgba(0,212,255,0.95) 100%);
+            border: 4px solid var(--accent);
+            padding: 2rem 3rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            z-index: 1001;
+            animation: unlockPop 0.6s ease forwards;
+            box-shadow: 0 0 40px rgba(255,215,0,0.8);
+            text-transform: uppercase;
+        }
+
+        .weapon-selector {
+            position: absolute;
+            bottom: 20px;
+            right: 2rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.4rem;
+            z-index: 10;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(10,14,20,0.9);
+            padding: 0.8rem;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+        }
+
+        .weapon-selector::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .weapon-selector::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+        }
+
+        .weapon-selector::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .weapon-btn {
+            width: 45px;
+            height: 45px;
+            background: rgba(0,0,0,0.3);
+            border: 2px solid;
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-radius: 4px;
+        }
+
+        .weapon-btn.locked {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .weapon-btn.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .weapon-btn:hover:not(.locked) {
+            transform: scale(1.05);
+        }
+
+        .weapon-info-panel {
+            position: absolute;
+            bottom: 420px;
+            right: 2rem;
+            background: rgba(10,14,20,0.95);
+            border: 2px solid;
+            padding: 1rem;
+            min-width: 250px;
+            z-index: 10;
+            border-radius: 8px;
+        }
+
+        .weapon-info-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .weapon-info-stats {
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .weapon-info-rarity {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .ping-display {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(10,14,20,0.8);
+            border: 2px solid var(--success);
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-grid"></div>
+    <div class="scanline"></div>
+
+    <!-- MAIN MENU -->
+    <div id="mainMenu" class="active">
+        <h1 class="logo">Black Ops 2D</h1>
+        <div class="subtitle">Combate Multijugador Global</div>
+        <div class="menu-buttons">
+            <button class="btn btn-primary" onclick="game.showProfileCustomizer()">Personalizar Perfil</button>
+            <button class="btn" onclick="game.findMatch()">Buscar Partida</button>
+            <button class="btn" onclick="game.showLobby()">Ver Jugadores Conectados</button>
+            <button class="btn" onclick="game.showLeaderboard()">Tabla de Líderes</button>
+        </div>
+    </div>
+
+    <!-- PROFILE CUSTOMIZER -->
+    <div id="profileCustomizer">
+        <div class="customizer-content">
+            <h2 class="lobby-title">Personalizar Perfil</h2>
+            
+            <div class="profile-preview">
+                <img id="previewAvatar" class="preview-avatar" src="" alt="Avatar">
+                <h3 id="previewName" style="color: var(--secondary); margin-top: 1rem;">Tu Nombre</h3>
+                <p id="previewCountry" style="color: #888;">Tu País</p>
+            </div>
+
+            <div class="input-group">
+                <label>Nombre de Usuario</label>
+                <input type="text" id="playerName" placeholder="Ingresa tu nombre" maxlength="20">
+            </div>
+
+            <div class="input-group">
+                <label>País</label>
+                <select id="playerCountry">
+                    <option value="Argentina">🇦🇷 Argentina</option>
+                    <option value="Bolivia">🇧🇴 Bolivia</option>
+                    <option value="Brasil">🇧🇷 Brasil</option>
+                    <option value="Chile">🇨🇱 Chile</option>
+                    <option value="Colombia">🇨🇴 Colombia</option>
+                    <option value="Costa Rica">🇨🇷 Costa Rica</option>
+                    <option value="Cuba">🇨🇺 Cuba</option>
+                    <option value="Ecuador">🇪🇨 Ecuador</option>
+                    <option value="El Salvador">🇸🇻 El Salvador</option>
+                    <option value="Guatemala">🇬🇹 Guatemala</option>
+                    <option value="Honduras">🇭🇳 Honduras</option>
+                    <option value="México">🇲🇽 México</option>
+                    <option value="Nicaragua">🇳🇮 Nicaragua</option>
+                    <option value="Panamá">🇵🇦 Panamá</option>
+                    <option value="Paraguay">🇵🇾 Paraguay</option>
+                    <option value="Perú">🇵🇪 Perú</option>
+                    <option value="Puerto Rico">🇵🇷 Puerto Rico</option>
+                    <option value="República Dominicana">🇩🇴 República Dominicana</option>
+                    <option value="Uruguay">🇺🇾 Uruguay</option>
+                    <option value="Venezuela">🇻🇪 Venezuela</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Selecciona tu Avatar</label>
+                <div class="avatar-options" id="avatarOptions"></div>
+            </div>
+
+            <div class="lobby-actions">
+                <button class="btn btn-primary" onclick="game.saveProfile()">Guardar Perfil</button>
+                <button class="btn" onclick="game.showMainMenu()">Volver</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOBBY -->
+    <div id="lobby">
+        <div class="lobby-header">
+            <h2 class="lobby-title">Sala de Espera</h2>
+            <p style="color: var(--secondary);">Jugadores conectados desde toda Latinoamérica</p>
+        </div>
+        <div class="players-grid" id="playersGrid"></div>
+        <div class="lobby-actions">
+            <button class="btn btn-primary" onclick="game.startGame()">Iniciar Combate</button>
+            <button class="btn" onclick="game.showMainMenu()">Volver al Menú</button>
+        </div>
+    </div>
+
+    <!-- GAME CONTAINER -->
+    <div id="gameContainer">
+        <div class="game-hud">
+            <div class="hud-left">
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill" style="width: 100%;"></div>
+                </div>
+                <div class="hud-item">Salud: <span id="healthText">100</span></div>
+                <div class="hud-item">Munición: <span id="ammoText">30/90</span></div>
+            </div>
+            <div class="hud-right">
+                <div class="hud-item score">Puntos: <span id="scoreText">0</span></div>
+                <div class="hud-item kills">Bajas: <span id="killsText">0</span></div>
+                <div class="hud-item">Jugadores: <span id="playerCountText">0</span></div>
+            </div>
+        </div>
+
+        <div class="kill-feed" id="killFeed"></div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="mobile-joystick" id="joystick">
+            <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+
+        <div class="fire-button" id="fireButton">🎯</div>
+
+        <div class="weapon-selector" id="weaponSelector"></div>
+
+        <div class="weapon-info-panel" id="weaponInfoPanel" style="display: none;">
+            <div class="weapon-info-rarity" id="weaponRarity"></div>
+            <div class="weapon-info-name" id="weaponInfoName"></div>
+            <div class="weapon-info-stats" id="weaponInfoStats"></div>
+        </div>
+
+        <div class="ping-display">
+            Ping: <span id="pingText">0</span>ms
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="game.showLeaderboard()" title="Tabla de Líderes">🏆</button>
+            <button class="control-btn" onclick="game.exitGame()" title="Salir">🚪</button>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <div class="leaderboard" id="leaderboardModal">
+        <h2>🏆 TABLA DE LÍDERES 🏆</h2>
+        <ul class="leaderboard-list" id="leaderboardList"></ul>
+        <div style="text-align: center; margin-top: 1rem;">
+            <button class="btn" onclick="game.hideLeaderboard()">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        class BlackOps2D {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.currentScreen = 'mainMenu';
+                
+                // Player data
+                this.player = {
+                    name: 'Jugador' + Math.floor(Math.random() * 1000),
+                    country: 'México',
+                    avatar: null,
+                    x: 400,
+                    y: 300,
+                    vx: 0,
+                    vy: 0,
+                    angle: 0,
+                    health: 100,
+                    maxHealth: 100,
+                    score: 0,
+                    kills: 0,
+                    speed: 5,
+                    inVehicle: false,
+                    currentWeapon: 0
+                };
+
+                // Comprehensive weapon system with rarities
+                this.weapons = [
+                    // COMÚN (Grises)
+                    { name: 'Pistola Básica', type: 'pistol', rarity: 'común', damage: 8, fireRate: 200, ammo: 12, maxAmmo: 48, range: 250, color: '#888888', pellets: 1 },
+                    { name: 'Escopeta Oxidada', type: 'shotgun', rarity: 'común', damage: 6, fireRate: 600, ammo: 4, maxAmmo: 20, range: 150, color: '#888888', pellets: 5 },
+                    { name: 'SMG Desgastada', type: 'smg', rarity: 'común', damage: 5, fireRate: 80, ammo: 25, maxAmmo: 100, range: 200, color: '#888888', pellets: 1 },
+                    
+                    // POCO COMÚN (Verdes)
+                    { name: 'M16 Estándar', type: 'rifle', rarity: 'poco común', damage: 12, fireRate: 120, ammo: 30, maxAmmo: 90, range: 400, color: '#4CAF50', pellets: 1 },
+                    { name: 'MP5 Táctica', type: 'smg', rarity: 'poco común', damage: 10, fireRate: 90, ammo: 30, maxAmmo: 120, range: 250, color: '#4CAF50', pellets: 1 },
+                    { name: 'Francotirador M24', type: 'sniper', rarity: 'poco común', damage: 60, fireRate: 1000, ammo: 5, maxAmmo: 25, range: 700, color: '#4CAF50', pellets: 1 },
+                    
+                    // RARO (Azules)
+                    { name: 'AK-47 Reforzada', type: 'rifle', rarity: 'raro', damage: 18, fireRate: 110, ammo: 30, maxAmmo: 90, range: 450, color: '#2196F3', pellets: 1 },
+                    { name: 'SPAS-12 Combate', type: 'shotgun', rarity: 'raro', damage: 12, fireRate: 500, ammo: 8, maxAmmo: 32, range: 180, color: '#2196F3', pellets: 6 },
+                    { name: 'AWP Mejorada', type: 'sniper', rarity: 'raro', damage: 85, fireRate: 900, ammo: 7, maxAmmo: 28, range: 850, color: '#2196F3', pellets: 1 },
+                    { name: 'Desert Eagle', type: 'pistol', rarity: 'raro', damage: 25, fireRate: 300, ammo: 7, maxAmmo: 35, range: 300, color: '#2196F3', pellets: 1 },
+                    
+                    // ÉPICO (Púrpuras)
+                    { name: 'SCAR-H Élite', type: 'rifle', rarity: 'épico', damage: 25, fireRate: 100, ammo: 30, maxAmmo: 90, range: 500, color: '#9C27B0', pellets: 1 },
+                    { name: 'Barrett M82', type: 'sniper', rarity: 'épico', damage: 120, fireRate: 1200, ammo: 5, maxAmmo: 20, range: 1000, color: '#9C27B0', pellets: 1 },
+                    { name: 'AA-12 Automática', type: 'shotgun', rarity: 'épico', damage: 15, fireRate: 200, ammo: 20, maxAmmo: 60, range: 200, color: '#9C27B0', pellets: 7 },
+                    { name: 'P90 Personalizada', type: 'smg', rarity: 'épico', damage: 15, fireRate: 60, ammo: 50, maxAmmo: 200, range: 300, color: '#9C27B0', pellets: 1 },
+                    
+                    // LEGENDARIO (Naranjas)
+                    { name: 'M4A1 Dragón', type: 'rifle', rarity: 'legendario', damage: 35, fireRate: 85, ammo: 40, maxAmmo: 120, range: 600, color: '#FF9800', pellets: 1 },
+                    { name: 'Intervention Oro', type: 'sniper', rarity: 'legendario', damage: 150, fireRate: 1000, ammo: 8, maxAmmo: 32, range: 1200, color: '#FF9800', pellets: 1 },
+                    { name: 'Minigun Portátil', type: 'heavy', rarity: 'legendario', damage: 20, fireRate: 40, ammo: 200, maxAmmo: 600, range: 400, color: '#FF9800', pellets: 1 },
+                    { name: 'Lanzacohetes RPG', type: 'launcher', rarity: 'legendario', damage: 200, fireRate: 2000, ammo: 1, maxAmmo: 5, range: 800, color: '#FF9800', pellets: 1, explosive: true },
+                    
+                    // MÍTICO (Rojos)
+                    { name: 'Devastador Plasma', type: 'rifle', rarity: 'mítico', damage: 50, fireRate: 70, ammo: 50, maxAmmo: 150, range: 700, color: '#F44336', pellets: 1, plasma: true },
+                    { name: 'Railgun Cuántico', type: 'sniper', rarity: 'mítico', damage: 250, fireRate: 1500, ammo: 3, maxAmmo: 15, range: 1500, color: '#F44336', pellets: 1, pierce: true },
+                    { name: 'Lanzamisiles APEX', type: 'launcher', rarity: 'mítico', damage: 300, fireRate: 2500, ammo: 2, maxAmmo: 8, range: 1000, color: '#F44336', pellets: 1, explosive: true, homing: true },
+                    { name: 'Destructor Iónico', type: 'heavy', rarity: 'mítico', damage: 40, fireRate: 30, ammo: 300, maxAmmo: 900, range: 500, color: '#F44336', pellets: 1, electric: true },
+                    
+                    // SECRETO (Arcoíris)
+                    { name: 'Rayo de la Muerte', type: 'special', rarity: 'secreto', damage: 100, fireRate: 50, ammo: 999, maxAmmo: 999, range: 2000, color: '#FFD700', pellets: 1, laser: true },
+                    { name: 'Aniquilador Cósmico', type: 'special', rarity: 'secreto', damage: 500, fireRate: 3000, ammo: 1, maxAmmo: 3, range: 1500, color: '#FFD700', pellets: 1, explosive: true, homing: true, pierce: true },
+                    { name: 'BFG 9000', type: 'launcher', rarity: 'secreto', damage: 1000, fireRate: 5000, ammo: 1, maxAmmo: 1, range: 2000, color: '#FFD700', pellets: 1, explosive: true, massive: true }
+                ];
+
+                this.currentWeaponIndex = 0;
+                this.currentWeapon = this.weapons[0];
+                this.lastShot = 0;
+                this.unlockedWeapons = [0, 1, 2]; // Start with 3 common weapons
+
+                // Multiplayer simulation
+                this.otherPlayers = [];
+                this.vehicles = [];
+                this.bullets = [];
+                this.particles = [];
+                this.obstacles = [];
+
+                // Controls
+                this.keys = {};
+                this.mouse = { x: 0, y: 0, down: false };
+                this.joystick = { active: false, x: 0, y: 0 };
+
+                // Game state
+                this.gameActive = false;
+                this.ping = Math.floor(Math.random() * 50) + 20;
+                this.screenShake = 0;
+
+                this.setupCanvas();
+                this.setupControls();
+                this.generateAvatars();
+                this.loadProfile();
+                this.startPingSimulation();
+                this.updateWeaponUI();
+                this.checkWeaponUnlocks();
+            }
+
+            checkWeaponUnlocks() {
+                // Unlock weapons based on score
+                const unlockThresholds = [
+                    0, 0, 0,      // Common (always unlocked)
+                    100, 150, 200,  // Uncommon
+                    400, 500, 600, 700,  // Rare
+                    1000, 1200, 1400, 1500,  // Epic
+                    2000, 2500, 3000, 3500,  // Legendary
+                    5000, 6000, 7000, 8000,  // Mythic
+                    10000, 15000, 20000  // Secret
+                ];
+
+                this.weapons.forEach((weapon, index) => {
+                    if (this.player.score >= unlockThresholds[index] && !this.unlockedWeapons.includes(index)) {
+                        this.unlockedWeapons.push(index);
+                        this.showNotification(`¡Arma desbloqueada!<br>${weapon.name}`);
+                    }
+                });
+
+                this.updateWeaponUI();
+            }
+
+            setupCanvas() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                };
+                resize();
+                window.addEventListener('resize', resize);
+            }
+
+            setupControls() {
+                // Keyboard
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    if (e.key === ' ') {
+                        e.preventDefault();
+                        this.shoot();
+                    }
+                    if (e.key === 'e') this.toggleVehicle();
+                    if (e.key === 'r') this.reload();
+                    
+                    // Weapon selection with number keys
+                    const num = parseInt(e.key);
+                    if (!isNaN(num) && num >= 1 && num <= 9) {
+                        const weaponIndex = num - 1;
+                        if (weaponIndex < this.weapons.length) {
+                            this.selectWeapon(weaponIndex);
+                        }
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
+
+                // Mouse
+                this.canvas.addEventListener('mousemove', (e) => {
+                    this.mouse.x = e.clientX;
+                    this.mouse.y = e.clientY;
+                });
+
+                this.canvas.addEventListener('mousedown', () => {
+                    this.mouse.down = true;
+                });
+
+                this.canvas.addEventListener('mouseup', () => {
+                    this.mouse.down = false;
+                });
+
+                this.canvas.addEventListener('click', () => {
+                    if (this.gameActive) this.shoot();
+                });
+
+                // Touch controls for mobile
+                const joystickElement = document.getElementById('joystick');
+                const knob = document.getElementById('joystickKnob');
+                
+                joystickElement.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.joystick.active = true;
+                });
+
+                joystickElement.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!this.joystick.active) return;
+
+                    const rect = joystickElement.getBoundingClientRect();
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const touch = e.touches[0];
+                    const x = touch.clientX - rect.left - centerX;
+                    const y = touch.clientY - rect.top - centerY;
+
+                    const distance = Math.min(Math.sqrt(x*x + y*y), 35);
+                    const angle = Math.atan2(y, x);
+
+                    this.joystick.x = Math.cos(angle) * distance / 35;
+                    this.joystick.y = Math.sin(angle) * distance / 35;
+
+                    knob.style.transform = `translate(calc(-50% + ${this.joystick.x * 35}px), calc(-50% + ${this.joystick.y * 35}px))`;
+                });
+
+                joystickElement.addEventListener('touchend', () => {
+                    this.joystick.active = false;
+                    this.joystick.x = 0;
+                    this.joystick.y = 0;
+                    knob.style.transform = 'translate(-50%, -50%)';
+                });
+
+                const fireButton = document.getElementById('fireButton');
+                fireButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.shoot();
+                });
+
+                // Profile inputs
+                document.getElementById('playerName').addEventListener('input', (e) => {
+                    document.getElementById('previewName').textContent = e.target.value || 'Tu Nombre';
+                });
+
+                document.getElementById('playerCountry').addEventListener('change', (e) => {
+                    document.getElementById('previewCountry').textContent = e.target.value;
+                });
+            }
+
+            generateAvatars() {
+                const colors = ['#ff6b00', '#00d4ff', '#ffd700', '#ff1744', '#00ff88', '#9c27b0', '#ff9800'];
+                const avatarsContainer = document.getElementById('avatarOptions');
+                const preview = document.getElementById('previewAvatar');
+
+                for (let i = 0; i < 12; i++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 80;
+                    canvas.height = 80;
+                    const ctx = canvas.getContext('2d');
+
+                    // Generate random avatar
+                    const bgColor = colors[i % colors.length];
+                    ctx.fillStyle = bgColor;
+                    ctx.fillRect(0, 0, 80, 80);
+
+                    // Add pattern
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    for (let j = 0; j < 5; j++) {
+                        ctx.fillRect(Math.random() * 80, Math.random() * 80, 20, 20);
+                    }
+
+                    // Add circle
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.beginPath();
+                    ctx.arc(40, 40, 20, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL();
+                    img.className = 'avatar-option';
+                    img.onclick = () => {
+                        document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+                        img.classList.add('selected');
+                        preview.src = img.src;
+                        this.player.avatar = img.src;
+                    };
+
+                    avatarsContainer.appendChild(img);
+
+                    if (i === 0) {
+                        img.click();
+                    }
+                }
+            }
+
+            loadProfile() {
+                const saved = localStorage.getItem('blackops2d_profile');
+                if (saved) {
+                    const profile = JSON.parse(saved);
+                    this.player.name = profile.name;
+                    this.player.country = profile.country;
+                    this.player.avatar = profile.avatar;
+                    
+                    document.getElementById('playerName').value = profile.name;
+                    document.getElementById('playerCountry').value = profile.country;
+                    document.getElementById('previewAvatar').src = profile.avatar;
+                    document.getElementById('previewName').textContent = profile.name;
+                    document.getElementById('previewCountry').textContent = profile.country;
+                }
+            }
+
+            saveProfile() {
+                const name = document.getElementById('playerName').value || 'Jugador' + Math.floor(Math.random() * 1000);
+                const country = document.getElementById('playerCountry').value;
+
+                this.player.name = name;
+                this.player.country = country;
+
+                const profile = {
+                    name: this.player.name,
+                    country: this.player.country,
+                    avatar: this.player.avatar
+                };
+
+                localStorage.setItem('blackops2d_profile', JSON.stringify(profile));
+                this.showNotification('¡Perfil guardado exitosamente!');
+                setTimeout(() => this.showMainMenu(), 1500);
+            }
+
+            showMainMenu() {
+                this.switchScreen('mainMenu');
+            }
+
+            showProfileCustomizer() {
+                this.switchScreen('profileCustomizer');
+            }
+
+            showLobby() {
+                this.switchScreen('lobby');
+                this.generatePlayers();
+            }
+
+            generatePlayers() {
+                const countries = ['Argentina', 'Brasil', 'Chile', 'Colombia', 'México', 'Perú', 'Venezuela', 'Uruguay', 'Paraguay', 'Bolivia'];
+                const grid = document.getElementById('playersGrid');
+                grid.innerHTML = '';
+
+                // Add current player
+                this.addPlayerCard(grid, this.player.name, this.player.country, this.player.avatar, this.player.kills, this.player.score, true);
+
+                // Add other players
+                for (let i = 0; i < 15; i++) {
+                    const name = 'Jugador' + Math.floor(Math.random() * 1000);
+                    const country = countries[Math.floor(Math.random() * countries.length)];
+                    const kills = Math.floor(Math.random() * 50);
+                    const score = kills * 100 + Math.floor(Math.random() * 500);
+                    
+                    // Generate avatar
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 60;
+                    canvas.height = 60;
+                    const ctx = canvas.getContext('2d');
+                    const colors = ['#ff6b00', '#00d4ff', '#ffd700', '#ff1744', '#00ff88'];
+                    ctx.fillStyle = colors[i % colors.length];
+                    ctx.fillRect(0, 0, 60, 60);
+                    const avatar = canvas.toDataURL();
+
+                    this.addPlayerCard(grid, name, country, avatar, kills, score, false);
+                }
+            }
+
+            addPlayerCard(container, name, country, avatar, kills, score, isCurrentPlayer) {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                if (isCurrentPlayer) {
+                    card.style.borderColor = 'var(--accent)';
+                }
+                
+                card.innerHTML = `
+                    <img src="${avatar}" class="player-avatar" alt="${name}">
+                    <div class="player-info">
+                        <div class="player-name">${name} ${isCurrentPlayer ? '(TÚ)' : ''}</div>
+                        <div class="player-country">${country}</div>
+                        <div class="player-stats">🎯 ${kills} bajas | ⭐ ${score} pts</div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            }
+
+            findMatch() {
+                this.showNotification('Buscando jugadores...');
+                setTimeout(() => {
+                    this.showNotification('¡Partida encontrada!');
+                    setTimeout(() => this.startGame(), 1500);
+                }, 2000);
+            }
+
+            startGame() {
+                this.switchScreen('gameContainer');
+                this.gameActive = true;
+                this.player.health = 100;
+                this.player.x = Math.random() * this.canvas.width;
+                this.player.y = Math.random() * this.canvas.height;
+                
+                this.generateMap();
+                this.spawnOtherPlayers();
+                this.spawnVehicles();
+                this.gameLoop();
+            }
+
+            generateMap() {
+                this.obstacles = [];
+                // Generate buildings/obstacles
+                for (let i = 0; i < 20; i++) {
+                    this.obstacles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        width: 50 + Math.random() * 100,
+                        height: 50 + Math.random() * 100,
+                        color: `hsl(${Math.random() * 60 + 200}, 30%, ${Math.random() * 20 + 20}%)`
+                    });
+                }
+            }
+
+            spawnOtherPlayers() {
+                this.otherPlayers = [];
+                for (let i = 0; i < 8; i++) {
+                    this.otherPlayers.push({
+                        id: i,
+                        name: 'Jugador' + Math.floor(Math.random() * 1000),
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        angle: Math.random() * Math.PI * 2,
+                        health: 100,
+                        color: `hsl(${Math.random() * 360}, 70%, 50%)`
+                    });
+                }
+            }
+
+            spawnVehicles() {
+                this.vehicles = [];
+                for (let i = 0; i < 3; i++) {
+                    this.vehicles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        angle: 0,
+                        speed: 0,
+                        occupied: false
+                    });
+                }
+            }
+
+            selectWeapon(index) {
+                if (!this.unlockedWeapons.includes(index)) {
+                    this.showNotification('¡Arma bloqueada! Consigue más puntos para desbloquearla');
+                    return;
+                }
+
+                this.currentWeaponIndex = index;
+                this.currentWeapon = this.weapons[index];
+                
+                this.updateWeaponUI();
+                this.updateAmmoDisplay();
+            }
+
+            updateWeaponUI() {
+                const selector = document.getElementById('weaponSelector');
+                selector.innerHTML = '';
+
+                this.weapons.forEach((weapon, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'weapon-btn';
+                    btn.style.borderColor = weapon.color;
+                    
+                    if (!this.unlockedWeapons.includes(index)) {
+                        btn.classList.add('locked');
+                    }
+                    
+                    if (index === this.currentWeaponIndex) {
+                        btn.classList.add('active');
+                        btn.style.color = weapon.color;
+                    }
+
+                    // Weapon icon based on type
+                    const icons = {
+                        'pistol': '🔫',
+                        'rifle': '🔥',
+                        'smg': '💨',
+                        'shotgun': '💥',
+                        'sniper': '🎯',
+                        'heavy': '⚡',
+                        'launcher': '🚀',
+                        'special': '✨'
+                    };
+
+                    btn.textContent = icons[weapon.type] || '⚔️';
+                    btn.title = weapon.name;
+
+                    btn.onclick = () => this.selectWeapon(index);
+                    
+                    btn.onmouseenter = () => this.showWeaponInfo(weapon);
+                    btn.onmouseleave = () => this.hideWeaponInfo();
+
+                    selector.appendChild(btn);
+                });
+            }
+
+            showWeaponInfo(weapon) {
+                const panel = document.getElementById('weaponInfoPanel');
+                const rarity = document.getElementById('weaponRarity');
+                const name = document.getElementById('weaponInfoName');
+                const stats = document.getElementById('weaponInfoStats');
+
+                panel.style.display = 'block';
+                panel.style.borderColor = weapon.color;
+                
+                rarity.textContent = weapon.rarity;
+                rarity.style.background = weapon.color;
+                rarity.style.color = weapon.rarity === 'secreto' ? '#000' : '#fff';
+                
+                name.textContent = weapon.name;
+                name.style.color = weapon.color;
+
+                stats.innerHTML = `
+                    <div>💥 Daño: ${weapon.damage}</div>
+                    <div>⚡ Cadencia: ${1000/weapon.fireRate} disparos/s</div>
+                    <div>🎯 Alcance: ${weapon.range}m</div>
+                    <div>📦 Munición: ${weapon.ammo}/${weapon.maxAmmo}</div>
+                    ${weapon.explosive ? '<div>💣 Explosivo</div>' : ''}
+                    ${weapon.pierce ? '<div>🔪 Perforante</div>' : ''}
+                    ${weapon.homing ? '<div>🎯 Rastreador</div>' : ''}
+                    ${weapon.laser ? '<div>⚡ Láser</div>' : ''}
+                `;
+            }
+
+            hideWeaponInfo() {
+                document.getElementById('weaponInfoPanel').style.display = 'none';
+            }
+
+            createWeaponSprite(weapon) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 40;
+                canvas.height = 20;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = weapon.color;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+
+                switch(weapon.type) {
+                    case 'pistol':
+                        // Pistol shape
+                        ctx.fillRect(0, 6, 15, 8);
+                        ctx.fillRect(15, 4, 10, 12);
+                        ctx.fillRect(25, 7, 5, 6);
+                        break;
+                    
+                    case 'rifle':
+                    case 'smg':
+                        // Rifle/SMG shape
+                        ctx.fillRect(0, 7, 35, 6);
+                        ctx.fillRect(8, 2, 8, 16);
+                        ctx.fillRect(20, 11, 8, 5);
+                        break;
+                    
+                    case 'shotgun':
+                        // Shotgun shape
+                        ctx.fillRect(0, 6, 30, 8);
+                        ctx.fillRect(30, 5, 5, 10);
+                        ctx.fillRect(10, 3, 6, 14);
+                        break;
+                    
+                    case 'sniper':
+                        // Sniper shape with scope
+                        ctx.fillRect(0, 8, 38, 4);
+                        ctx.fillRect(10, 2, 10, 16);
+                        ctx.strokeRect(12, 4, 6, 12);
+                        break;
+                    
+                    case 'heavy':
+                        // Heavy weapon shape
+                        ctx.fillRect(0, 5, 35, 10);
+                        ctx.fillRect(8, 0, 8, 20);
+                        ctx.fillRect(25, 3, 5, 14);
+                        break;
+                    
+                    case 'launcher':
+                        // Rocket launcher shape
+                        ctx.fillRect(0, 4, 35, 12);
+                        ctx.fillRect(35, 2, 5, 16);
+                        ctx.arc(38, 10, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    
+                    case 'special':
+                        // Energy weapon shape
+                        ctx.fillStyle = weapon.color;
+                        ctx.fillRect(0, 7, 30, 6);
+                        ctx.fillRect(30, 4, 8, 12);
+                        // Energy glow
+                        const gradient = ctx.createLinearGradient(0, 0, 40, 0);
+                        gradient.addColorStop(0, 'transparent');
+                        gradient.addColorStop(1, weapon.color);
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 5, 40, 10);
+                        break;
+                }
+
+                // Add details based on rarity
+                if (weapon.rarity === 'legendario' || weapon.rarity === 'mítico' || weapon.rarity === 'secreto') {
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    for (let i = 0; i < 5; i++) {
+                        ctx.fillRect(Math.random() * 30, Math.random() * 20, 2, 2);
+                    }
+                }
+
+                return canvas;
+            }
+
+            updateAmmoDisplay() {
+                document.getElementById('ammoText').textContent = 
+                    `${this.currentWeapon.ammo}/${this.currentWeapon.maxAmmo}`;
+            }
+
+            shoot() {
+                if (!this.gameActive) return;
+                
+                const now = Date.now();
+                if (now - this.lastShot < this.currentWeapon.fireRate) return;
+                if (this.currentWeapon.ammo <= 0) {
+                    this.reload();
+                    return;
+                }
+
+                this.lastShot = now;
+                this.currentWeapon.ammo--;
+                this.updateAmmoDisplay();
+
+                const angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
+                
+                // Handle different weapon types
+                if (this.currentWeapon.type === 'shotgun') {
+                    // Shotgun fires multiple pellets
+                    for (let i = 0; i < this.currentWeapon.pellets; i++) {
+                        const spread = (Math.random() - 0.5) * 0.3;
+                        this.createBullet(angle + spread);
+                    }
+                } else if (this.currentWeapon.explosive) {
+                    // Rocket/explosive projectile
+                    this.bullets.push({
+                        x: this.player.x,
+                        y: this.player.y,
+                        vx: Math.cos(angle) * 8,
+                        vy: Math.sin(angle) * 8,
+                        damage: this.currentWeapon.damage,
+                        range: this.currentWeapon.range,
+                        traveled: 0,
+                        owner: 'player',
+                        explosive: true,
+                        explosionRadius: this.currentWeapon.massive ? 300 : 150,
+                        homing: this.currentWeapon.homing || false,
+                        trail: []
+                    });
+                } else if (this.currentWeapon.laser) {
+                    // Laser beam
+                    this.createLaserBeam(angle);
+                } else {
+                    // Standard bullet
+                    this.createBullet(angle);
+                }
+
+                // Muzzle flash particles
+                const particleCount = this.currentWeapon.rarity === 'secreto' ? 15 : 
+                                     this.currentWeapon.rarity === 'mítico' ? 12 : 8;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    this.particles.push({
+                        x: this.player.x + Math.cos(angle) * 20,
+                        y: this.player.y + Math.sin(angle) * 20,
+                        vx: Math.cos(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 4 + 3),
+                        vy: Math.sin(angle + (Math.random() - 0.5) * 0.8) * (Math.random() * 4 + 3),
+                        life: 25,
+                        color: this.currentWeapon.color,
+                        size: Math.random() * 3 + 2
+                    });
+                }
+
+                // Screen shake for heavy weapons
+                if (this.currentWeapon.type === 'launcher' || this.currentWeapon.type === 'heavy') {
+                    this.screenShake = 10;
+                }
+            }
+
+            createBullet(angle) {
+                const speed = this.currentWeapon.type === 'sniper' ? 15 : 12;
+                this.bullets.push({
+                    x: this.player.x + Math.cos(angle) * 20,
+                    y: this.player.y + Math.sin(angle) * 20,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    damage: this.currentWeapon.damage,
+                    range: this.currentWeapon.range,
+                    traveled: 0,
+                    owner: 'player',
+                    color: this.currentWeapon.color,
+                    pierce: this.currentWeapon.pierce || false,
+                    plasma: this.currentWeapon.plasma || false,
+                    electric: this.currentWeapon.electric || false
+                });
+            }
+
+            createLaserBeam(angle) {
+                // Laser creates instant hit detection
+                const maxDist = this.currentWeapon.range;
+                let hitX = this.player.x + Math.cos(angle) * maxDist;
+                let hitY = this.player.y + Math.sin(angle) * maxDist;
+
+                // Check what the laser hits
+                for (let p of this.otherPlayers) {
+                    if (p.health <= 0) continue;
+                    
+                    const dist = this.pointToLineDistance(p.x, p.y, this.player.x, this.player.y, hitX, hitY);
+                    if (dist < 15) {
+                        p.health -= this.currentWeapon.damage;
+                        hitX = p.x;
+                        hitY = p.y;
+                        
+                        if (p.health <= 0) {
+                            this.player.kills++;
+                            this.player.score += 100;
+                            this.updateScoreDisplay();
+                            this.addKillFeed(`Eliminaste a ${p.name}`);
+                            setTimeout(() => {
+                                p.health = 100;
+                                p.x = Math.random() * this.canvas.width;
+                                p.y = Math.random() * this.canvas.height;
+                            }, 3000);
+                        }
+                        break;
+                    }
+                }
+
+                // Laser visual effect
+                this.particles.push({
+                    x: this.player.x,
+                    y: this.player.y,
+                    x2: hitX,
+                    y2: hitY,
+                    life: 10,
+                    color: this.currentWeapon.color,
+                    laser: true
+                });
+            }
+
+            pointToLineDistance(px, py, x1, y1, x2, y2) {
+                const A = px - x1;
+                const B = py - y1;
+                const C = x2 - x1;
+                const D = y2 - y1;
+                const dot = A * C + B * D;
+                const lenSq = C * C + D * D;
+                const param = lenSq !== 0 ? dot / lenSq : -1;
+
+                let xx, yy;
+                if (param < 0) {
+                    xx = x1;
+                    yy = y1;
+                } else if (param > 1) {
+                    xx = x2;
+                    yy = y2;
+                } else {
+                    xx = x1 + param * C;
+                    yy = y1 + param * D;
+                }
+
+                const dx = px - xx;
+                const dy = py - yy;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            createExplosion(x, y, radius, damage, owner) {
+                // Damage all entities in radius
+                if (owner === 'player') {
+                    for (let p of this.otherPlayers) {
+                        if (p.health <= 0) continue;
+                        const dist = Math.hypot(p.x - x, p.y - y);
+                        if (dist < radius) {
+                            const dmg = damage * (1 - dist / radius);
+                            p.health -= dmg;
+                            
+                            if (p.health <= 0) {
+                                this.player.kills++;
+                                this.player.score += 100;
+                                this.updateScoreDisplay();
+                                this.addKillFeed(`Eliminaste a ${p.name}`);
+                                this.checkWeaponUnlocks();
+                                
+                                setTimeout(() => {
+                                    p.health = 100;
+                                    p.x = Math.random() * this.canvas.width;
+                                    p.y = Math.random() * this.canvas.height;
+                                }, 3000);
+                            }
+                        }
+                    }
+                }
+
+                // Explosion particles
+                const particleCount = radius > 200 ? 100 : 50;
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 8 + 4;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 40 + Math.random() * 20,
+                        color: ['#ff6b00', '#ff1744', '#ffd700', '#fff'][Math.floor(Math.random() * 4)],
+                        size: Math.random() * 6 + 3
+                    });
+                }
+
+                // Shockwave
+                this.particles.push({
+                    x: x,
+                    y: y,
+                    radius: 0,
+                    maxRadius: radius,
+                    life: 30,
+                    shockwave: true
+                });
+
+                this.screenShake = radius > 200 ? 20 : 15;
+            }
+
+            createHitEffect(x, y, color) {
+                for (let i = 0; i < 10; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: (Math.random() - 0.5) * 4,
+                        life: 30,
+                        color: color,
+                        size: Math.random() * 3 + 1
+                    });
+                }
+            }
+
+            reload() {
+                const ammoNeeded = this.currentWeapon.ammo;
+                const ammoAvailable = this.currentWeapon.maxAmmo;
+                const ammoToReload = Math.min(30 - this.currentWeapon.ammo, ammoAvailable);
+                
+                this.currentWeapon.ammo += ammoToReload;
+                this.currentWeapon.maxAmmo -= ammoToReload;
+                this.updateAmmoDisplay();
+            }
+
+            toggleVehicle() {
+                if (this.player.inVehicle) {
+                    this.player.inVehicle = false;
+                    this.player.speed = 5;
+                } else {
+                    // Check if near a vehicle
+                    const nearVehicle = this.vehicles.find(v => {
+                        const dist = Math.hypot(v.x - this.player.x, v.y - this.player.y);
+                        return dist < 50 && !v.occupied;
+                    });
+
+                    if (nearVehicle) {
+                        this.player.inVehicle = true;
+                        this.player.speed = 10;
+                        nearVehicle.occupied = true;
+                        this.showNotification('¡Entraste al vehículo!');
+                    }
+                }
+            }
+
+            update() {
+                if (!this.gameActive) return;
+
+                // Update player movement
+                let dx = 0, dy = 0;
+
+                if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
+                if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
+                if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
+                if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+
+                // Mobile joystick
+                if (this.joystick.active) {
+                    dx = this.joystick.x;
+                    dy = this.joystick.y;
+                }
+
+                if (dx !== 0 || dy !== 0) {
+                    const mag = Math.sqrt(dx * dx + dy * dy);
+                    dx /= mag;
+                    dy /= mag;
+                    
+                    this.player.vx = dx * this.player.speed;
+                    this.player.vy = dy * this.player.speed;
+                } else {
+                    this.player.vx *= 0.9;
+                    this.player.vy *= 0.9;
+                }
+
+                this.player.x += this.player.vx;
+                this.player.y += this.player.vy;
+
+                // Keep player in bounds
+                this.player.x = Math.max(20, Math.min(this.canvas.width - 20, this.player.x));
+                this.player.y = Math.max(20, Math.min(this.canvas.height - 20, this.player.y));
+
+                // Update player angle to face mouse
+                this.player.angle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
+
+                // Update other players (AI simulation)
+                this.otherPlayers.forEach(p => {
+                    // Simple AI: move randomly and shoot at player sometimes
+                    if (Math.random() < 0.02) {
+                        p.vx = (Math.random() - 0.5) * 4;
+                        p.vy = (Math.random() - 0.5) * 4;
+                    }
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    // Keep in bounds
+                    if (p.x < 0 || p.x > this.canvas.width) p.vx *= -1;
+                    if (p.y < 0 || p.y > this.canvas.height) p.vy *= -1;
+
+                    p.x = Math.max(20, Math.min(this.canvas.width - 20, p.x));
+                    p.y = Math.max(20, Math.min(this.canvas.height - 20, p.y));
+
+                    // Point towards player
+                    p.angle = Math.atan2(this.player.y - p.y, this.player.x - p.x);
+
+                    // Shoot at player sometimes
+                    if (Math.random() < 0.01 && p.health > 0) {
+                        this.bullets.push({
+                            x: p.x,
+                            y: p.y,
+                            vx: Math.cos(p.angle) * 8,
+                            vy: Math.sin(p.angle) * 8,
+                            damage: 10,
+                            range: 400,
+                            traveled: 0,
+                            owner: p.id
+                        });
+                    }
+                });
+
+                // Update bullets
+                this.bullets = this.bullets.filter(b => {
+                    b.x += b.vx;
+                    b.y += b.vy;
+                    b.traveled += Math.hypot(b.vx, b.vy);
+
+                    // Homing missiles
+                    if (b.homing && b.owner === 'player') {
+                        const nearestEnemy = this.otherPlayers.reduce((nearest, p) => {
+                            if (p.health <= 0) return nearest;
+                            const dist = Math.hypot(p.x - b.x, p.y - b.y);
+                            if (!nearest || dist < nearest.dist) {
+                                return { player: p, dist: dist };
+                            }
+                            return nearest;
+                        }, null);
+
+                        if (nearestEnemy && nearestEnemy.dist < 400) {
+                            const angle = Math.atan2(nearestEnemy.player.y - b.y, nearestEnemy.player.x - b.x);
+                            const currentAngle = Math.atan2(b.vy, b.vx);
+                            const angleDiff = angle - currentAngle;
+                            const turnRate = 0.1;
+                            const newAngle = currentAngle + angleDiff * turnRate;
+                            const speed = Math.hypot(b.vx, b.vy);
+                            b.vx = Math.cos(newAngle) * speed;
+                            b.vy = Math.sin(newAngle) * speed;
+                        }
+                    }
+
+                    // Trail for rockets
+                    if (b.explosive) {
+                        if (!b.trail) b.trail = [];
+                        b.trail.push({ x: b.x, y: b.y, life: 20 });
+                        b.trail = b.trail.filter(t => {
+                            t.life--;
+                            return t.life > 0;
+                        });
+                    }
+
+                    // Check if out of range
+                    if (b.traveled > b.range) {
+                        if (b.explosive) {
+                            this.createExplosion(b.x, b.y, b.explosionRadius, b.damage, b.owner);
+                        }
+                        return false;
+                    }
+
+                    // Check collision with player
+                    if (b.owner !== 'player') {
+                        const dist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
+                        if (dist < 15) {
+                            this.player.health -= b.damage;
+                            this.updateHealthDisplay();
+                            
+                            this.createHitEffect(b.x, b.y, '#ff1744');
+
+                            if (this.player.health <= 0) {
+                                this.gameOver();
+                            }
+                            
+                            if (!b.pierce) return false;
+                        }
+                    }
+
+                    // Check collision with other players
+                    if (b.owner === 'player') {
+                        for (let p of this.otherPlayers) {
+                            if (p.health <= 0) continue;
+                            const dist = Math.hypot(b.x - p.x, b.y - p.y);
+                            if (dist < 15) {
+                                p.health -= b.damage;
+                                
+                                this.createHitEffect(b.x, b.y, '#00ff88');
+
+                                if (p.health <= 0) {
+                                    this.player.kills++;
+                                    this.player.score += 100;
+                                    this.updateScoreDisplay();
+                                    this.addKillFeed(`Eliminaste a ${p.name}`);
+                                    this.checkWeaponUnlocks();
+                                    
+                                    setTimeout(() => {
+                                        p.health = 100;
+                                        p.x = Math.random() * this.canvas.width;
+                                        p.y = Math.random() * this.canvas.height;
+                                    }, 3000);
+                                }
+                                
+                                if (b.explosive) {
+                                    this.createExplosion(b.x, b.y, b.explosionRadius, b.damage, b.owner);
+                                }
+                                
+                                if (!b.pierce) return false;
+                            }
+                        }
+                    }
+
+                    // Check collision with obstacles
+                    for (let obs of this.obstacles) {
+                        if (b.x > obs.x && b.x < obs.x + obs.width &&
+                            b.y > obs.y && b.y < obs.y + obs.height) {
+                            if (b.explosive) {
+                                this.createExplosion(b.x, b.y, b.explosionRadius, b.damage, b.owner);
+                            }
+                            if (!b.pierce) return false;
+                        }
+                    }
+
+                    return b.x > -100 && b.x < this.canvas.width + 100 && b.y > -100 && b.y < this.canvas.height + 100;
+                });
+
+                // Update particles
+                this.particles = this.particles.filter(p => {
+                    if (p.laser || p.shockwave) {
+                        p.life--;
+                        return p.life > 0;
+                    }
+                    
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.2; // Gravity
+                    p.life--;
+                    return p.life > 0;
+                });
+
+                // Auto-shoot if mouse held
+                if (this.mouse.down) {
+                    this.shoot();
+                }
+            }
+
+            render() {
+                // Apply screen shake
+                this.ctx.save();
+                if (this.screenShake > 0) {
+                    this.ctx.translate(
+                        (Math.random() - 0.5) * this.screenShake,
+                        (Math.random() - 0.5) * this.screenShake
+                    );
+                    this.screenShake *= 0.9;
+                    if (this.screenShake < 0.5) this.screenShake = 0;
+                }
+
+                // Clear canvas
+                this.ctx.fillStyle = '#0f1419';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw grid
+                this.ctx.strokeStyle = 'rgba(255,107,0,0.1)';
+                this.ctx.lineWidth = 1;
+                for (let x = 0; x < this.canvas.width; x += 50) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                for (let y = 0; y < this.canvas.height; y += 50) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+
+                // Draw obstacles
+                this.obstacles.forEach(obs => {
+                    this.ctx.fillStyle = obs.color;
+                    this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    this.ctx.strokeStyle = 'rgba(255,107,0,0.3)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+                });
+
+                // Draw vehicles
+                this.vehicles.forEach(v => {
+                    this.ctx.save();
+                    this.ctx.translate(v.x, v.y);
+                    this.ctx.rotate(v.angle);
+                    
+                    this.ctx.fillStyle = v.occupied ? '#ff6b00' : '#555';
+                    this.ctx.fillRect(-25, -15, 50, 30);
+                    
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.fillRect(-20, -20, 10, 10);
+                    this.ctx.fillRect(-20, 10, 10, 10);
+                    this.ctx.fillRect(10, -20, 10, 10);
+                    this.ctx.fillRect(10, 10, 10, 10);
+                    
+                    this.ctx.restore();
+                });
+
+                // Draw other players
+                this.otherPlayers.forEach(p => {
+                    if (p.health <= 0) return;
+
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    this.ctx.rotate(p.angle);
+
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fillRect(-12, -8, 24, 16);
+
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.fillRect(10, -2, 15, 4);
+
+                    this.ctx.restore();
+
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.font = '12px Rajdhani';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(p.name, p.x, p.y - 25);
+
+                    const healthWidth = 30;
+                    const healthHeight = 4;
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.fillRect(p.x - healthWidth/2, p.y - 20, healthWidth, healthHeight);
+                    this.ctx.fillStyle = '#00ff88';
+                    this.ctx.fillRect(p.x - healthWidth/2, p.y - 20, (p.health / 100) * healthWidth, healthHeight);
+                });
+
+                // Draw player with weapon sprite
+                this.ctx.save();
+                this.ctx.translate(this.player.x, this.player.y);
+                this.ctx.rotate(this.player.angle);
+
+                this.ctx.fillStyle = '#00d4ff';
+                this.ctx.fillRect(-12, -8, 24, 16);
+
+                // Draw weapon sprite
+                const weaponSprite = this.createWeaponSprite(this.currentWeapon);
+                this.ctx.drawImage(weaponSprite, 5, -10);
+
+                this.ctx.restore();
+
+                this.ctx.fillStyle = '#ffd700';
+                this.ctx.font = 'bold 14px Rajdhani';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(this.player.name, this.player.x, this.player.y - 25);
+
+                // Draw bullets with trails
+                this.bullets.forEach(b => {
+                    // Draw trail for rockets
+                    if (b.trail) {
+                        b.trail.forEach((t, i) => {
+                            this.ctx.fillStyle = b.color || '#ff6b00';
+                            this.ctx.globalAlpha = (t.life / 20) * 0.5;
+                            this.ctx.beginPath();
+                            this.ctx.arc(t.x, t.y, 4, 0, Math.PI * 2);
+                            this.ctx.fill();
+                        });
+                        this.ctx.globalAlpha = 1;
+                    }
+
+                    // Draw bullet
+                    if (b.explosive) {
+                        // Rocket
+                        this.ctx.save();
+                        this.ctx.translate(b.x, b.y);
+                        this.ctx.rotate(Math.atan2(b.vy, b.vx));
+                        this.ctx.fillStyle = b.color || '#ff6b00';
+                        this.ctx.fillRect(-8, -3, 16, 6);
+                        this.ctx.fillStyle = '#ff1744';
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(-8, -3);
+                        this.ctx.lineTo(-12, 0);
+                        this.ctx.lineTo(-8, 3);
+                        this.ctx.fill();
+                        this.ctx.restore();
+                    } else {
+                        this.ctx.fillStyle = b.color || (b.owner === 'player' ? '#00ff88' : '#ff1744');
+                        
+                        if (b.plasma) {
+                            // Plasma effect
+                            this.ctx.shadowBlur = 15;
+                            this.ctx.shadowColor = b.color;
+                        }
+                        
+                        this.ctx.beginPath();
+                        this.ctx.arc(b.x, b.y, b.electric ? 5 : 3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.shadowBlur = 0;
+
+                        // Bullet trail
+                        this.ctx.strokeStyle = b.color || (b.owner === 'player' ? 'rgba(0,255,136,0.3)' : 'rgba(255,23,68,0.3)');
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(b.x, b.y);
+                        this.ctx.lineTo(b.x - b.vx * 3, b.y - b.vy * 3);
+                        this.ctx.stroke();
+                    }
+                });
+
+                // Draw particles
+                this.particles.forEach(p => {
+                    if (p.laser) {
+                        // Laser beam
+                        this.ctx.strokeStyle = p.color;
+                        this.ctx.lineWidth = 4;
+                        this.ctx.shadowBlur = 20;
+                        this.ctx.shadowColor = p.color;
+                        this.ctx.globalAlpha = p.life / 10;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(p.x, p.y);
+                        this.ctx.lineTo(p.x2, p.y2);
+                        this.ctx.stroke();
+                        this.ctx.shadowBlur = 0;
+                        this.ctx.globalAlpha = 1;
+                    } else if (p.shockwave) {
+                        // Explosion shockwave
+                        p.radius += (p.maxRadius - p.radius) * 0.2;
+                        this.ctx.strokeStyle = '#ff6b00';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.globalAlpha = p.life / 30;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        this.ctx.globalAlpha = 1;
+                    } else {
+                        // Regular particles
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.globalAlpha = p.life / 30;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.size || 2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.globalAlpha = 1;
+                    }
+                });
+
+                // Draw crosshair
+                this.ctx.strokeStyle = this.currentWeapon.color;
+                this.ctx.lineWidth = 2;
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowColor = this.currentWeapon.color;
+                this.ctx.beginPath();
+                this.ctx.arc(this.mouse.x, this.mouse.y, 10, 0, Math.PI * 2);
+                this.ctx.moveTo(this.mouse.x - 15, this.mouse.y);
+                this.ctx.lineTo(this.mouse.x - 5, this.mouse.y);
+                this.ctx.moveTo(this.mouse.x + 5, this.mouse.y);
+                this.ctx.lineTo(this.mouse.x + 15, this.mouse.y);
+                this.ctx.moveTo(this.mouse.x, this.mouse.y - 15);
+                this.ctx.lineTo(this.mouse.x, this.mouse.y - 5);
+                this.ctx.moveTo(this.mouse.x, this.mouse.y + 5);
+                this.ctx.lineTo(this.mouse.x, this.mouse.y + 15);
+                this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
+
+                this.ctx.restore();
+            }
+
+            updateHealthDisplay() {
+                const healthPercent = Math.max(0, this.player.health / this.player.maxHealth * 100);
+                document.getElementById('healthFill').style.width = healthPercent + '%';
+                document.getElementById('healthText').textContent = Math.max(0, Math.floor(this.player.health));
+                
+                if (this.player.health < 30) {
+                    document.getElementById('healthFill').style.background = 'linear-gradient(90deg, var(--danger) 0%, #ff6b00 100%)';
+                } else {
+                    document.getElementById('healthFill').style.background = 'linear-gradient(90deg, var(--success) 0%, var(--accent) 100%)';
+                }
+            }
+
+            updateScoreDisplay() {
+                document.getElementById('scoreText').textContent = this.player.score;
+                document.getElementById('killsText').textContent = this.player.kills;
+                document.getElementById('playerCountText').textContent = this.otherPlayers.filter(p => p.health > 0).length + 1;
+            }
+
+            addKillFeed(message) {
+                const feed = document.getElementById('killFeed');
+                const msg = document.createElement('div');
+                msg.className = 'kill-message';
+                msg.textContent = message;
+                feed.insertBefore(msg, feed.firstChild);
+                
+                setTimeout(() => msg.remove(), 5000);
+            }
+
+            gameLoop() {
+                if (this.gameActive) {
+                    this.update();
+                    this.render();
+                    requestAnimationFrame(() => this.gameLoop());
+                }
+            }
+
+            gameOver() {
+                this.gameActive = false;
+                this.showNotification(`¡Juego Terminado!<br>Puntos: ${this.player.score}<br>Bajas: ${this.player.kills}`);
+                setTimeout(() => this.showMainMenu(), 3000);
+            }
+
+            exitGame() {
+                this.gameActive = false;
+                this.showMainMenu();
+            }
+
+            showLeaderboard() {
+                const modal = document.getElementById('leaderboardModal');
+                const list = document.getElementById('leaderboardList');
+                list.innerHTML = '';
+
+                // Generate fake leaderboard
+                const leaders = [
+                    { name: this.player.name, score: this.player.score, kills: this.player.kills, country: this.player.country }
+                ];
+
+                const countries = ['Argentina', 'Brasil', 'Chile', 'Colombia', 'México', 'Perú', 'Venezuela'];
+                for (let i = 0; i < 9; i++) {
+                    leaders.push({
+                        name: 'Jugador' + Math.floor(Math.random() * 1000),
+                        score: Math.floor(Math.random() * 5000) + 1000,
+                        kills: Math.floor(Math.random() * 50) + 5,
+                        country: countries[Math.floor(Math.random() * countries.length)]
+                    });
+                }
+
+                leaders.sort((a, b) => b.score - a.score);
+
+                leaders.forEach((leader, index) => {
+                    const item = document.createElement('li');
+                    item.className = 'leaderboard-item';
+                    item.innerHTML = `
+                        <span>${index + 1}. ${leader.name} (${leader.country})</span>
+                        <span>${leader.score} pts | ${leader.kills} bajas</span>
+                    `;
+                    list.appendChild(item);
+                });
+
+                modal.style.display = 'block';
+            }
+
+            hideLeaderboard() {
+                document.getElementById('leaderboardModal').style.display = 'none';
+            }
+
+            showNotification(text) {
+                const notif = document.getElementById('notification');
+                notif.innerHTML = text;
+                notif.style.display = 'block';
+                setTimeout(() => {
+                    notif.style.display = 'none';
+                }, 3000);
+            }
+
+            switchScreen(screen) {
+                ['mainMenu', 'lobby', 'gameContainer', 'profileCustomizer'].forEach(s => {
+                    document.getElementById(s).classList.remove('active');
+                });
+                document.getElementById(screen).classList.add('active');
+                this.currentScreen = screen;
+            }
+
+            startPingSimulation() {
+                setInterval(() => {
+                    this.ping = Math.floor(Math.random() * 30) + 20;
+                    document.getElementById('pingText').textContent = this.ping;
+                }, 2000);
+            }
+        }
+
+        // Initialize game
+        const game = new BlackOps2D();
+    </script>
+</body>
+</html>
